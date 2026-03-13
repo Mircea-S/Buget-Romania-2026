@@ -265,13 +265,13 @@ function MinistereTab() {
         <ResponsiveContainer width="100%" height={400}>
           <Treemap data={treemapData} dataKey="size" nameKey="name" stroke="var(--bg-card)" strokeWidth={2}
             content={({ x, y, width, height, name, size, cat }) => {
-              if (width < 30 || height < 25) return null;
+              if (!width || !height || width < 30 || height < 25 || !name) return null;
               return (
                 <g>
                   <rect x={x} y={y} width={width} height={height} rx={6} fill={CATEGORIES[cat]?.color || "#888"} fillOpacity={0.8} />
                   {width > 50 && height > 35 && <>
                     <text x={x + 8} y={y + 18} fontSize={12} fontWeight={500} fill="#fff">{name}</text>
-                    <text x={x + 8} y={y + 34} fontSize={11} fill="#ffffffbb">{fmt(size)} mld</text>
+                    <text x={x + 8} y={y + 34} fontSize={11} fill="#ffffffbb">{typeof size === 'number' ? fmt(size) + ' mld' : ''}</text>
                   </>}
                 </g>
               );
