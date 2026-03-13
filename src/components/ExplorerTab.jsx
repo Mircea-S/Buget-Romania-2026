@@ -341,10 +341,10 @@ export default function ExplorerTab({ initialSearchName }) {
         </div>
       )}
 
-      <div className="rounded-xl border p-4 mt-4" style={{ borderColor: "var(--border-color)", background: "var(--bg-surface)" }}>
-        <p className="text-xs font-medium mb-2" style={{ color: "var(--c-text)" }}>💡 Ce vedeți aici?</p>
-        <p className="text-xs leading-relaxed" style={{ color: "var(--c-muted)" }}>{EXPLAINERS.explorer.context}</p>
-      </div>
+      <details className="explainer-box rounded-xl border mt-4" style={{ borderColor: "var(--border-color)", background: "var(--bg-surface)" }}>
+        <summary className="text-xs font-medium p-4 cursor-pointer" style={{ color: "var(--c-text)" }}>Ce vedeți aici?</summary>
+        <p className="text-xs leading-relaxed px-4 pb-4" style={{ color: "var(--c-muted)" }}>{EXPLAINERS.explorer.context}</p>
+      </details>
     </div>
   );
 }

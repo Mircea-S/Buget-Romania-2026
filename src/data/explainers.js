@@ -51,3 +51,17 @@ export const EXPLAINERS = {
       "Un \u00abcapitol bugetar\u00bb (cod de 4 cifre) este clasificarea func\u021bional\u0103: 5001=cheltuieli totale, 5100=autorit\u0103\u021bi publice, 6100=ordine public\u0103, 6500=\u00eenv\u0103\u021b\u0103m\u00e2nt, 6800=asisten\u021b\u0103 social\u0103, 6001=ap\u0103rare etc. Un \u00abtitlu\u00bb (cod de 2 cifre) este clasificarea economic\u0103: 10=cheltuieli de personal, 20=bunuri \u0219i servicii, 51=transferuri, 55=alte transferuri, 56\u201361=proiecte cu finan\u021bare din fonduri UE.",
   },
 };
+
+// Glossary definitions for inline tooltips
+export const GLOSSARY = {
+  cb: "Credite bugetare — plățile efective autorizate pentru anul curent. Aceasta e suma care se cheltuie efectiv în 2026.",
+  ca: "Credite de angajament — totalul obligațiilor contractuale asumate, inclusiv plăți ce se vor face în anii următori.",
+  pib: "Produsul Intern Brut — valoarea totală a bunurilor și serviciilor produse de economia României într-un an.",
+  esa: "European System of Accounts — metodologia europeană de contabilitate publică, diferită de metoda cash națională.",
+  tva: "Taxa pe Valoarea Adăugată — impozit indirect pe consum, principala sursă de venituri a statului.",
+  pnrr: "Planul Național de Redresare și Reziliență — programul UE de recuperare post-COVID, cu granturi și împrumuturi.",
+  fen: "Fonduri Externe Nerambursabile — fonduri primite de la UE fără obligație de rambursare (programarea 2021–2027).",
+  safe: "Instrumentul SAFE — program european nou destinat finanțării apărării și securității statelor membre.",
+  defalcari: "Defalcări — sume din impozite naționale (TVA, impozit pe venit) transferate automat către bugetele locale.",
+  cash: "Metodologia cash — deficitul calculat pe baza plăților și încasărilor efective (metodologia națională).",
+};

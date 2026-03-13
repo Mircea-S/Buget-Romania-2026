@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Line, Area, AreaChart, Treemap, ComposedChart } from "recharts";
 import ExplorerTab from "./components/ExplorerTab";
-import { EXPLAINERS } from "./data/explainers";
+import GlossaryTerm from "./components/GlossaryTerm";
+import { EXPLAINERS, GLOSSARY } from "./data/explainers";
 
 // ─── DATA ───────────────────────────────────────────────────────────────
 // Sursa: Anexa 3 — Formular 01 per ordonator principal de credite
@@ -153,16 +154,25 @@ const pct = (n) => (n >= 0 ? "+" : "") + fmt(n) + "%";
 // ─── COMPONENTS ─────────────────────────────────────────────────────────
 const TABS = [
   { id: "overview", label: "Prezentare generală" },
-  { id: "ministere", label: "Alocări ministere" },
-  { id: "detaliu", label: "Detaliu ministere" },
+  { id: "explorer", label: "Explorer" },
+  { id: "ministere", label: "Ministere" },
   { id: "venituri", label: "Venituri" },
-  { id: "venituriDetaliu", label: "Venituri detaliat" },
   { id: "cheltuieli", label: "Cheltuieli" },
   { id: "deficit", label: "Deficit & Datorie" },
   { id: "locale", label: "Bugete locale" },
   { id: "eu", label: "Fonduri UE" },
-  { id: "explorer", label: "Explorer" },
 ];
+
+const POPULATION = 18.8; // milioane locuitori
+
+function ExplainerBox({ explainerKey }) {
+  return (
+    <details className="explainer-box rounded-xl border" style={{borderColor:"var(--border-color)", background:"var(--bg-surface)"}}>
+      <summary className="text-xs font-medium p-4" style={{color:"var(--c-text)"}}>Ce vedeți aici?</summary>
+      <p className="text-xs leading-relaxed px-4 pb-4" style={{color:"var(--c-muted)"}}>{EXPLAINERS[explainerKey].context}</p>
+    </details>
+  );
+}
 
 function MetricCard({ label, value, unit, sub, accent }) {
   return (
@@ -201,20 +211,32 @@ function CustomTooltip({ active, payload, label, suffix = " mld lei" }) {
 
 function OverviewTab({ onNavigateExplorer }) {
   const top8 = useMemo(() => [...MINISTRIES].sort((a, b) => b.cb - a.cb).slice(0, 8), []);
+  const [perCapita, setPerCapita] = useState(false);
+  const pc = (v) => perCapita ? fmt(Math.round(v * 1000 / POPULATION)) : fmt(v);
+  const pcUnit = (base) => perCapita ? "lei/locuitor" : base;
   return (
     <div className="space-y-6">
       <p className="text-xs" style={{color:"var(--c-muted)"}}>{EXPLAINERS.overview.intro}</p>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard label="PIB estimat" value={fmt(MACRO.pib)} unit="miliarde lei" />
-        <MetricCard label="Venituri buget de stat" value={fmt(MACRO.venituriStat)} unit="mld lei · 19,2% PIB" accent="#0F6E56"/>
-        <MetricCard label="Cheltuieli buget de stat" value={fmt(MACRO.cheltuieliStatCB)} unit="mld lei (CB)" accent="#D85A30"/>
-        <MetricCard label="Deficit bugetar" value={"-" + fmt(MACRO.deficitStat)} unit="mld lei" accent="#A32D2D" sub={{text:"6,6% din PIB (cash)", color:"#A32D2D"}} />
+      <ExplainerBox explainerKey="overview" />
+      <div className="flex items-center gap-2 mb-1">
+        <button onClick={() => setPerCapita(false)} className="text-xs px-3 py-1 rounded-full border transition-all" style={{
+          background: !perCapita ? "var(--c-text)" : "transparent", color: !perCapita ? "var(--bg-card)" : "var(--c-muted)", borderColor: !perCapita ? "var(--c-text)" : "var(--border-color)"
+        }}>Total</button>
+        <button onClick={() => setPerCapita(true)} className="text-xs px-3 py-1 rounded-full border transition-all" style={{
+          background: perCapita ? "var(--c-text)" : "transparent", color: perCapita ? "var(--bg-card)" : "var(--c-muted)", borderColor: perCapita ? "var(--c-text)" : "var(--border-color)"
+        }}>Per locuitor</button>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard label="Investiții publice" value={fmt(MACRO.investitii)} unit="mld lei · 8% PIB" accent="#639922" sub={{text: "+25,6 mld vs 2025", color:"#639922"}} />
-        <MetricCard label="Fonduri europene" value={"110+"} unit="mld lei" accent="#185FA5" sub={{text: "+40% față de 2025", color:"#185FA5"}} />
-        <MetricCard label="Dobânzi datorii" value={fmt(MACRO.dobanzile)} unit="mld lei · 2,9% PIB" accent="#BA7517" sub={{text: "+10 mld vs 2025 (48,8→58,8)", color:"#BA7517"}} />
-        <MetricCard label="Datorie publică" value={fmt(MACRO.datorie) + "%"} unit="din PIB" accent="#993556" />
+        <MetricCard label="PIB estimat" value={pc(MACRO.pib)} unit={pcUnit("miliarde lei")} sub={{text: "+7,7% vs 2025", color:"var(--c-muted)"}} />
+        <MetricCard label="Venituri buget de stat" value={pc(MACRO.venituriStat)} unit={pcUnit("mld lei") + (!perCapita ? " · 19,2% PIB" : "")} accent="#0F6E56" sub={{text: "+53 mld vs 2025", color:"#0F6E56"}} />
+        <MetricCard label="Cheltuieli buget de stat" value={pc(MACRO.cheltuieliStatCB)} unit={pcUnit("mld lei") + (!perCapita ? " (CB)" : "")} accent="#D85A30" sub={{text: "+36 mld vs 2025", color:"#D85A30"}} />
+        <MetricCard label="Deficit bugetar" value={"-" + pc(MACRO.deficitStat)} unit={pcUnit("mld lei")} accent="#A32D2D" sub={{text:"6,6% din PIB — dublu față de limita UE de 3%", color:"#A32D2D"}} />
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <MetricCard label="Investiții publice" value={pc(MACRO.investitii)} unit={pcUnit("mld lei") + (!perCapita ? " · 8% PIB" : "")} accent="#639922" sub={{text: "+25,6 mld vs 2025", color:"#639922"}} />
+        <MetricCard label="Fonduri europene" value={perCapita ? pc(110) : "110+"} unit={pcUnit("mld lei")} accent="#185FA5" sub={{text: "Cel mai mare an de absorbție din istoria României", color:"#185FA5"}} />
+        <MetricCard label="Dobânzi datorii" value={pc(MACRO.dobanzile)} unit={pcUnit("mld lei") + (!perCapita ? " · 2,9% PIB" : "")} accent="#BA7517" sub={{text: "Al 4-lea cel mai mare capitol de cheltuieli", color:"#BA7517"}} />
+        <MetricCard label="Datorie publică" value={fmt(MACRO.datorie) + "%"} unit="din PIB" accent="#993556" sub={{text: "Peste pragul UE de 60%", color:"#993556"}} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-4">
@@ -251,15 +273,12 @@ function OverviewTab({ onNavigateExplorer }) {
         </div>
       </div>
 
-      <div className="rounded-xl border p-4" style={{borderColor:"var(--border-color)", background:"var(--bg-surface)"}}>
-        <p className="text-xs font-medium mb-2" style={{color:"var(--c-text)"}}>💡 Ce vedeți aici?</p>
-        <p className="text-xs leading-relaxed" style={{color:"var(--c-muted)"}}>{EXPLAINERS.overview.context}</p>
-      </div>
     </div>
   );
 }
 
 function MinistereTab({ onNavigateExplorer }) {
+  const STACK_COLORS = { personal: "#534AB7", bunuri: "#BA7517", investitii: "#639922", fonduriEU: "#185FA5", alte: "#888780" };
   const [sortBy, setSortBy] = useState("cb");
   const [filterCat, setFilterCat] = useState("all");
   const [viewMode, setViewMode] = useState("bar");
@@ -274,9 +293,20 @@ function MinistereTab({ onNavigateExplorer }) {
     name: m.short, size: m.cb, cat: m.cat, fullName: m.name
   })), [filtered]);
 
+  const structureData = useMemo(() => {
+    return [...MINISTRIES]
+      .filter(m => m.cb >= 1.0)
+      .sort((a, b) => b.cb - a.cb)
+      .map(m => {
+        const known = (m.personal || 0) + (m.bunuri || 0) + (m.investitii || 0) + (m.fonduriEU || 0);
+        return { ...m, alte: Math.max(0, m.cb - known) };
+      });
+  }, []);
+
   return (
     <div className="space-y-4">
       <p className="text-xs" style={{color:"var(--c-muted)"}}>{EXPLAINERS.ministries.intro}</p>
+      <ExplainerBox explainerKey="ministries" />
       <div className="flex flex-wrap gap-2 items-center">
         <span className="text-xs font-medium mr-1" style={{color:"var(--c-muted)"}}>Categorie:</span>
         {[{id:"all",label:"Toate"},...Object.entries(CATEGORIES).map(([id,v])=>({id,label:v.label}))].map(c => (
@@ -287,7 +317,7 @@ function MinistereTab({ onNavigateExplorer }) {
           }}>{c.label}</button>
         ))}
         <div className="ml-auto flex gap-1">
-          {[{id:"bar",label:"Bare"},{id:"treemap",label:"Treemap"},{id:"table",label:"Tabel"}].map(v=>(
+          {[{id:"bar",label:"Bare"},{id:"treemap",label:"Treemap"},{id:"table",label:"Tabel"},{id:"structura",label:"Structură"}].map(v=>(
             <button key={v.id} onClick={()=>setViewMode(v.id)} className="text-xs px-3 py-1 rounded-full border transition-all" style={{
               background: viewMode === v.id ? "var(--c-text)" : "transparent",
               color: viewMode === v.id ? "var(--bg-card)" : "var(--c-muted)",
@@ -418,96 +448,94 @@ function MinistereTab({ onNavigateExplorer }) {
         </div>
       )}
 
-      <div className="rounded-xl border p-4" style={{borderColor:"var(--border-color)", background:"var(--bg-surface)"}}>
-        <p className="text-xs font-medium mb-2" style={{color:"var(--c-text)"}}>💡 Ce vedeți aici?</p>
-        <p className="text-xs leading-relaxed" style={{color:"var(--c-muted)"}}>{EXPLAINERS.ministries.context}</p>
-      </div>
-    </div>
-  );
-}
-
-function DetaliiMinistereTab({ onNavigateExplorer }) {
-  const STACK_COLORS = { personal: "#534AB7", bunuri: "#BA7517", investitii: "#639922", fonduriEU: "#185FA5", alte: "#888780" };
-
-  const data = useMemo(() => {
-    return [...MINISTRIES]
-      .filter(m => m.cb >= 1.0)
-      .sort((a, b) => b.cb - a.cb)
-      .map(m => {
-        const known = (m.personal || 0) + (m.bunuri || 0) + (m.investitii || 0) + (m.fonduriEU || 0);
-        return { ...m, alte: Math.max(0, m.cb - known) };
-      });
-  }, []);
-
-  return (
-    <div className="space-y-5">
-      <p className="text-sm font-medium" style={{color:"var(--c-text)"}}>Structura cheltuielilor per minister (mld lei, CB 2026)</p>
-      <p className="text-xs" style={{color:"var(--c-muted)"}}>Arată <em>de ce</em> un minister are un buget mare: salarii, fonduri UE, investiții sau transferuri sociale. Pentru detalii complete pe capitole și titluri, vezi tab-ul <strong>Explorer</strong>.</p>
-      <ResponsiveContainer width="100%" height={Math.max(400, data.length * 36)}>
-        <BarChart data={data} layout="vertical" margin={{left:4,right:24,top:4,bottom:4}}>
-          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border-color)" />
-          <XAxis type="number" tick={{fontSize:11, fill:"var(--c-muted)"}} tickFormatter={v => v + " mld"} />
-          <YAxis type="category" dataKey="short" width={90} tick={{fontSize:11, fill:"var(--c-text)"}} />
-          <Tooltip content={({ active, payload }) => {
-            if (!active || !payload?.length) return null;
-            const d = payload[0]?.payload;
-            if (!d) return null;
-            return (
-              <div className="rounded-lg border px-3 py-2 text-xs shadow-sm" style={{background:"var(--bg-card)", borderColor:"var(--border-color)", color:"var(--c-text)"}}>
-                <p className="font-medium mb-1">{d.name}</p>
-                <p>Total CB: <strong>{fmt(d.cb)} mld</strong></p>
-                {d.personal > 0 && <p style={{color:STACK_COLORS.personal}}>Personal: {fmt(d.personal)} mld</p>}
-                {d.bunuri > 0 && <p style={{color:STACK_COLORS.bunuri}}>Bunuri: {fmt(d.bunuri)} mld</p>}
-                {d.investitii > 0 && <p style={{color:STACK_COLORS.investitii}}>Investiții: {fmt(d.investitii)} mld</p>}
-                {d.fonduriEU > 0 && <p style={{color:STACK_COLORS.fonduriEU}}>Fonduri UE: {fmt(d.fonduriEU)} mld</p>}
-                {d.alte > 0 && <p style={{color:STACK_COLORS.alte}}>Alte (transferuri, subvenții...): {fmt(d.alte)} mld</p>}
-              </div>
-            );
-          }} />
-          <Bar dataKey="personal" name="Personal" stackId="a" fill={STACK_COLORS.personal} />
-          <Bar dataKey="bunuri" name="Bunuri" stackId="a" fill={STACK_COLORS.bunuri} />
-          <Bar dataKey="investitii" name="Investiții" stackId="a" fill={STACK_COLORS.investitii} />
-          <Bar dataKey="fonduriEU" name="Fonduri UE" stackId="a" fill={STACK_COLORS.fonduriEU} />
-          <Bar dataKey="alte" name="Alte" stackId="a" fill={STACK_COLORS.alte} radius={[0,4,4,0]} cursor="pointer" onClick={(d) => onNavigateExplorer && onNavigateExplorer(d.name)} />
-        </BarChart>
-      </ResponsiveContainer>
-      <div className="flex flex-wrap gap-3 mt-1">
-        {Object.entries(STACK_COLORS).map(([key, color]) => (
-          <span key={key} className="flex items-center gap-1.5 text-xs" style={{color:"var(--c-muted)"}}>
-            <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{background: color}}/> {key === "personal" ? "Personal" : key === "bunuri" ? "Bunuri și servicii" : key === "investitii" ? "Investiții" : key === "fonduriEU" ? "Fonduri UE" : "Alte (transferuri, subvenții)"}
-          </span>
-        ))}
-      </div>
-
-      <div className="rounded-xl border p-4" style={{borderColor:"var(--border-color)", background:"var(--bg-surface)"}}>
-        <p className="text-xs font-medium mb-2" style={{color:"var(--c-text)"}}>Exemple de structură</p>
-        <p className="text-xs leading-relaxed" style={{color:"var(--c-muted)"}}>
-          <strong>Educație</strong> (~65 mld): ~36 mld sunt salarii profesori + ~11 mld fonduri UE. <strong>Muncă</strong> (~92 mld): grosul sunt transferuri pentru pensii și asistență socială. <strong>Transporturi</strong> (~42 mld): ~31 mld sunt fonduri UE (autostrăzi, căi ferate). <strong>Apărare</strong> (~49 mld): ~14 mld salarii + ~22 mld investiții înzestrare.
-        </p>
-      </div>
+      {viewMode === "structura" && (
+        <div className="space-y-5">
+          <p className="text-xs" style={{color:"var(--c-muted)"}}>Arată <em>de ce</em> un minister are un buget mare: salarii, fonduri UE, investiții sau transferuri sociale.</p>
+          <ResponsiveContainer width="100%" height={Math.max(400, structureData.length * 36)}>
+            <BarChart data={structureData} layout="vertical" margin={{left:4,right:24,top:4,bottom:4}}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border-color)" />
+              <XAxis type="number" tick={{fontSize:11, fill:"var(--c-muted)"}} tickFormatter={v => v + " mld"} />
+              <YAxis type="category" dataKey="short" width={90} tick={{fontSize:11, fill:"var(--c-text)"}} />
+              <Tooltip content={({ active, payload }) => {
+                if (!active || !payload?.length) return null;
+                const d = payload[0]?.payload;
+                if (!d) return null;
+                return (
+                  <div className="rounded-lg border px-3 py-2 text-xs shadow-sm" style={{background:"var(--bg-card)", borderColor:"var(--border-color)", color:"var(--c-text)"}}>
+                    <p className="font-medium mb-1">{d.name}</p>
+                    <p>Total <GlossaryTerm id="cb">CB</GlossaryTerm>: <strong>{fmt(d.cb)} mld</strong></p>
+                    {d.personal > 0 && <p style={{color:STACK_COLORS.personal}}>Personal: {fmt(d.personal)} mld</p>}
+                    {d.bunuri > 0 && <p style={{color:STACK_COLORS.bunuri}}>Bunuri: {fmt(d.bunuri)} mld</p>}
+                    {d.investitii > 0 && <p style={{color:STACK_COLORS.investitii}}>Investiții: {fmt(d.investitii)} mld</p>}
+                    {d.fonduriEU > 0 && <p style={{color:STACK_COLORS.fonduriEU}}>Fonduri UE: {fmt(d.fonduriEU)} mld</p>}
+                    {d.alte > 0 && <p style={{color:STACK_COLORS.alte}}>Alte (transferuri, subvenții...): {fmt(d.alte)} mld</p>}
+                  </div>
+                );
+              }} />
+              <Bar dataKey="personal" name="Personal" stackId="a" fill={STACK_COLORS.personal} />
+              <Bar dataKey="bunuri" name="Bunuri" stackId="a" fill={STACK_COLORS.bunuri} />
+              <Bar dataKey="investitii" name="Investiții" stackId="a" fill={STACK_COLORS.investitii} />
+              <Bar dataKey="fonduriEU" name="Fonduri UE" stackId="a" fill={STACK_COLORS.fonduriEU} />
+              <Bar dataKey="alte" name="Alte" stackId="a" fill={STACK_COLORS.alte} radius={[0,4,4,0]} cursor="pointer" onClick={(d) => onNavigateExplorer && onNavigateExplorer(d.name)} />
+            </BarChart>
+          </ResponsiveContainer>
+          <div className="flex flex-wrap gap-3 mt-1">
+            {Object.entries(STACK_COLORS).map(([key, color]) => (
+              <span key={key} className="flex items-center gap-1.5 text-xs" style={{color:"var(--c-muted)"}}>
+                <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{background: color}}/> {key === "personal" ? "Personal" : key === "bunuri" ? "Bunuri și servicii" : key === "investitii" ? "Investiții" : key === "fonduriEU" ? "Fonduri UE" : "Alte (transferuri, subvenții)"}
+              </span>
+            ))}
+          </div>
+          <div className="rounded-xl border p-4" style={{borderColor:"var(--border-color)", background:"var(--bg-surface)"}}>
+            <p className="text-xs font-medium mb-2" style={{color:"var(--c-text)"}}>Exemple de structură</p>
+            <p className="text-xs leading-relaxed" style={{color:"var(--c-muted)"}}>
+              <strong>Educație</strong> (~65 mld): ~36 mld sunt salarii profesori + ~11 mld fonduri UE. <strong>Muncă</strong> (~92 mld): grosul sunt transferuri pentru pensii și asistență socială. <strong>Transporturi</strong> (~42 mld): ~31 mld sunt fonduri UE (autostrăzi, căi ferate). <strong>Apărare</strong> (~49 mld): ~14 mld salarii + ~22 mld investiții înzestrare.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function VenituriTab() {
   const [mode, setMode] = useState("pie");
+  const [detail, setDetail] = useState("sumar");
   const total = REVENUE_BREAKDOWN.reduce((s,r)=>s+r.value, 0);
+
+  const treemapDataVenituri = useMemo(() => {
+    return REVENUE_DETAIL.map(r => ({
+      name: r.name, size: r.value, color: r.color, parent: r.parent
+    }));
+  }, []);
+
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <MetricCard label="Venituri totale" value={fmt(MACRO.venituriStat)} unit="mld lei buget de stat" accent="#0F6E56" />
-        <MetricCard label="TVA net" value="128,6" unit="mld lei (brut 156,3 – defalcări 27,7)" accent="#185FA5" />
+        <MetricCard label={<><GlossaryTerm id="tva">TVA</GlossaryTerm> net</>} value="128,6" unit="mld lei (brut 156,3 – defalcări 27,7)" accent="#185FA5" />
         <MetricCard label="Sume de la UE" value="50,9" unit="mld lei" accent="#639922" sub={{text:"+297% vs 2025", color:"#639922"}} />
         <MetricCard label="Impozit pe profit" value="42,4" unit="mld lei" accent="#534AB7" sub={{text:"+3,6% vs 2025", color:"#534AB7"}} />
       </div>
       <p className="text-xs" style={{color:"var(--c-muted)"}}>{EXPLAINERS.revenue.intro}</p>
-      <div className="flex gap-2 mt-2">
-        {["pie","bar"].map(m => (
-          <button key={m} onClick={()=>setMode(m)} className="text-xs px-3 py-1 rounded-full border transition-all" style={{
-            background: mode===m?"var(--c-text)":"transparent", color: mode===m?"var(--bg-card)":"var(--c-muted)", borderColor: mode===m?"var(--c-text)":"var(--border-color)"
-          }}>{m==="pie"?"Donut":"Bare"}</button>
+      <ExplainerBox explainerKey="revenue" />
+      <div className="flex flex-wrap gap-2 mt-2">
+        <span className="text-xs font-medium mr-1" style={{color:"var(--c-muted)"}}>Nivel:</span>
+        {[{id:"sumar",label:"Sumar"},{id:"detaliat",label:"Detaliat"}].map(v => (
+          <button key={v.id} onClick={()=>setDetail(v.id)} className="text-xs px-3 py-1 rounded-full border transition-all" style={{
+            background: detail===v.id?"var(--c-text)":"transparent", color: detail===v.id?"var(--bg-card)":"var(--c-muted)", borderColor: detail===v.id?"var(--c-text)":"var(--border-color)"
+          }}>{v.label}</button>
         ))}
+        {detail === "sumar" && <>
+          <span className="mx-2 border-l" style={{borderColor:"var(--border-color)"}}/>
+          {["pie","bar"].map(m => (
+            <button key={m} onClick={()=>setMode(m)} className="text-xs px-3 py-1 rounded-full border transition-all" style={{
+              background: mode===m?"var(--c-text)":"transparent", color: mode===m?"var(--bg-card)":"var(--c-muted)", borderColor: mode===m?"var(--c-text)":"var(--border-color)"
+            }}>{m==="pie"?"Donut":"Bare"}</button>
+          ))}
+        </>}
       </div>
+      {detail === "sumar" && <>
       {mode === "pie" ? (
         <div className="flex items-center justify-center">
           <ResponsiveContainer width="100%" height={320}>
@@ -546,80 +574,67 @@ function VenituriTab() {
           </span>
         ))}
       </div>
+      </>}
 
-      <div className="rounded-xl border p-4" style={{borderColor:"var(--border-color)", background:"var(--bg-surface)"}}>
-        <p className="text-xs font-medium mb-2" style={{color:"var(--c-text)"}}>💡 Ce vedeți aici?</p>
-        <p className="text-xs leading-relaxed" style={{color:"var(--c-muted)"}}>{EXPLAINERS.revenue.context}</p>
-      </div>
-    </div>
-  );
-}
+      {detail === "detaliat" && <>
+        <p className="text-sm font-medium" style={{color:"var(--c-text)"}}>Venituri buget de stat — breakdown complet (mld lei)</p>
+        <p className="text-xs" style={{color:"var(--c-muted)"}}>Arată diferența între valorile <em>brute</em> și cele <em>nete</em> (după <GlossaryTerm id="defalcari">defalcări</GlossaryTerm> către bugete locale).</p>
 
-function VenituriDetaliuTab() {
-  const treemapData = useMemo(() => {
-    return REVENUE_DETAIL.map(r => ({
-      name: r.name, size: r.value, color: r.color, parent: r.parent
-    }));
-  }, []);
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <MetricCard label={<><GlossaryTerm id="tva">TVA</GlossaryTerm> brut</>} value="156,3" unit="mld lei" accent="#185FA5" sub={{text: "–27,7 mld defalcări = 128,6 net", color:"#185FA5"}} />
+          <MetricCard label="Impozit venit brut" value="59,7" unit="mld lei" accent="#D85A30" sub={{text: "–40,6 mld cote locale = 19,1 net", color:"#D85A30"}} />
+          <MetricCard label="Total brut colectat" value="~490" unit="mld lei" accent="#0F6E56" sub={{text: "~100 mld merg la bugete locale", color:"#0F6E56"}} />
+        </div>
 
-  return (
-    <div className="space-y-5">
-      <p className="text-sm font-medium" style={{color:"var(--c-text)"}}>Venituri buget de stat — breakdown complet (mld lei)</p>
-      <p className="text-xs" style={{color:"var(--c-muted)"}}>Arată diferența între valorile <em>brute</em> și cele <em>nete</em> (după defalcări către bugete locale).</p>
+        <ResponsiveContainer width="100%" height={400}>
+          <Treemap data={treemapDataVenituri} dataKey="size" nameKey="name" stroke="var(--bg-card)" strokeWidth={2}
+            content={({ x, y, width, height, name, size, color }) => {
+              if (!width || !height || width < 30 || height < 25 || !name) return null;
+              const nameFontSize = Math.max(11, Math.min(16, Math.floor(width / 8)));
+              const valFontSize = Math.max(10, nameFontSize - 2);
+              return (
+                <g>
+                  <rect x={x} y={y} width={width} height={height} rx={6} fill={color || "#888"} />
+                  {width > 55 && height > 35 && <>
+                    <text x={x + 8} y={y + 4 + nameFontSize} fontSize={nameFontSize} fill="var(--c-text)">{name}</text>
+                    <text x={x + 8} y={y + 8 + nameFontSize + valFontSize} fontSize={valFontSize} fill="var(--c-text)">{typeof size === 'number' ? fmt(size) + ' mld' : ''}</text>
+                  </>}
+                </g>
+              );
+            }}
+          >
+            <Tooltip content={({ payload }) => {
+              if (!payload || !payload.length) return null;
+              const d = payload[0].payload;
+              return (
+                <div style={{background:"var(--bg-card)",border:"1px solid var(--border-color)",borderRadius:8,padding:"8px 12px",fontSize:12,color:"var(--c-text)",boxShadow:"0 2px 8px rgba(0,0,0,0.15)"}}>
+                  <div style={{fontWeight:700}}>{d.name}</div>
+                  <div>{fmt(d.size)} mld lei</div>
+                  {d.parent && <div style={{color:"var(--c-muted)", marginTop:2}}>Grup: {d.parent}</div>}
+                </div>
+              );
+            }} />
+          </Treemap>
+        </ResponsiveContainer>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <MetricCard label="TVA brut" value="156,3" unit="mld lei" accent="#185FA5" sub={{text: "–27,7 mld defalcări = 128,6 net", color:"#185FA5"}} />
-        <MetricCard label="Impozit venit brut" value="59,7" unit="mld lei" accent="#D85A30" sub={{text: "–40,6 mld cote locale = 19,1 net", color:"#D85A30"}} />
-        <MetricCard label="Total brut colectat" value="~490" unit="mld lei" accent="#0F6E56" sub={{text: "~100 mld merg la bugete locale", color:"#0F6E56"}} />
-      </div>
+        <ResponsiveContainer width="100%" height={320}>
+          <BarChart data={REVENUE_DETAIL} margin={{left:4,right:16,top:4,bottom:4}}>
+            <XAxis dataKey="name" tick={{fontSize:9, fill:"var(--c-muted)"}} angle={-35} textAnchor="end" height={80} />
+            <YAxis tick={{fontSize:11, fill:"var(--c-muted)"}} tickFormatter={v=>v+" mld"} />
+            <Tooltip content={<CustomTooltip />} />
+            <Bar dataKey="value" name="Venituri" radius={[4,4,0,0]} barSize={28}>
+              {REVENUE_DETAIL.map((r,i) => <Cell key={i} fill={r.color} />)}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
 
-      <ResponsiveContainer width="100%" height={400}>
-        <Treemap data={treemapData} dataKey="size" nameKey="name" stroke="var(--bg-card)" strokeWidth={2}
-          content={({ x, y, width, height, name, size, color }) => {
-            if (!width || !height || width < 30 || height < 25 || !name) return null;
-            const nameFontSize = Math.max(11, Math.min(16, Math.floor(width / 8)));
-            const valFontSize = Math.max(10, nameFontSize - 2);
-            return (
-              <g>
-                <rect x={x} y={y} width={width} height={height} rx={6} fill={color || "#888"} />
-                {width > 55 && height > 35 && <>
-                  <text x={x + 8} y={y + 4 + nameFontSize} fontSize={nameFontSize} fill="var(--c-text)">{name}</text>
-                  <text x={x + 8} y={y + 8 + nameFontSize + valFontSize} fontSize={valFontSize} fill="var(--c-text)">{typeof size === 'number' ? fmt(size) + ' mld' : ''}</text>
-                </>}
-              </g>
-            );
-          }}
-        >
-          <Tooltip content={({ payload }) => {
-            if (!payload || !payload.length) return null;
-            const d = payload[0].payload;
-            return (
-              <div style={{background:"var(--bg-card)",border:"1px solid var(--border-color)",borderRadius:8,padding:"8px 12px",fontSize:12,color:"var(--c-text)",boxShadow:"0 2px 8px rgba(0,0,0,0.15)"}}>
-                <div style={{fontWeight:700}}>{d.name}</div>
-                <div>{fmt(d.size)} mld lei</div>
-              </div>
-            );
-          }} />
-        </Treemap>
-      </ResponsiveContainer>
-
-      <ResponsiveContainer width="100%" height={320}>
-        <BarChart data={REVENUE_DETAIL} margin={{left:4,right:16,top:4,bottom:4}}>
-          <XAxis dataKey="name" tick={{fontSize:9, fill:"var(--c-muted)"}} angle={-35} textAnchor="end" height={80} />
-          <YAxis tick={{fontSize:11, fill:"var(--c-muted)"}} tickFormatter={v=>v+" mld"} />
-          <Tooltip content={<CustomTooltip />} />
-          <Bar dataKey="value" name="Venituri" radius={[4,4,0,0]} barSize={28}>
-            {REVENUE_DETAIL.map((r,i) => <Cell key={i} fill={r.color} />)}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-
-      <div className="rounded-xl border p-4" style={{borderColor:"var(--border-color)", background:"var(--bg-surface)"}}>
-        <p className="text-xs font-medium mb-2" style={{color:"var(--c-text)"}}>De ce contează diferența brut vs net?</p>
-        <p className="text-xs leading-relaxed" style={{color:"var(--c-muted)"}}>
-          Statul colectează ~156 mld lei TVA, dar 27,7 mld se duc direct către bugetele locale. Similar, din 59,7 mld impozit pe venit, 40,6 mld sunt cote defalcate care finanțează primării și consilii județene. Bugetul de stat reține doar diferența.
-        </p>
-      </div>
+        <div className="rounded-xl border p-4" style={{borderColor:"var(--border-color)", background:"var(--bg-surface)"}}>
+          <p className="text-xs font-medium mb-2" style={{color:"var(--c-text)"}}>De ce contează diferența brut vs net?</p>
+          <p className="text-xs leading-relaxed" style={{color:"var(--c-muted)"}}>
+            Statul colectează ~156 mld lei <GlossaryTerm id="tva">TVA</GlossaryTerm>, dar 27,7 mld se duc direct către bugetele locale. Similar, din 59,7 mld impozit pe venit, 40,6 mld sunt cote <GlossaryTerm id="defalcari">defalcate</GlossaryTerm> care finanțează primării și consilii județene. Bugetul de stat reține doar diferența.
+          </p>
+        </div>
+      </>}
     </div>
   );
 }
@@ -634,13 +649,14 @@ function CheltuieliTab() {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard label="Cheltuieli buget stat CB" value={fmt(MACRO.cheltuieliStatCB)} unit="mld lei" />
+        <MetricCard label={<>Cheltuieli buget stat <GlossaryTerm id="cb">CB</GlossaryTerm></>} value={fmt(MACRO.cheltuieliStatCB)} unit="mld lei" />
         <MetricCard label="Personal" value="89,8" unit="mld lei · 4,4% PIB" accent="#0F6E56" sub={{text:"Stabil vs 2025 (+0,02%)",color:"#0F6E56"}} />
         <MetricCard label="Asistență socială" value="74,5" unit="mld lei" accent="#534AB7" sub={{text:"-0,7% vs 2025",color:"#534AB7"}} />
-        <MetricCard label="Dobânzi" value={fmt(MACRO.dobanzile)} unit="mld lei" accent="#D85A30" sub={{text:"De la 48,8 → 58,8 mld (+20,5%)",color:"#D85A30"}} />
+        <MetricCard label="Dobânzi" value={fmt(MACRO.dobanzile)} unit="mld lei" accent="#D85A30" sub={{text:"Al 4-lea cel mai mare capitol · +20,5% vs 2025",color:"#D85A30"}} />
       </div>
 
       <p className="text-xs" style={{color:"var(--c-muted)"}}>{EXPLAINERS.expenditure.intro}</p>
+      <ExplainerBox explainerKey="expenditure" />
       <div className="flex flex-wrap gap-2">
         <span className="text-xs font-medium mr-1" style={{color:"var(--c-muted)"}}>Vizualizare:</span>
         {[{id:"titluri",label:"Pe Titluri"},{id:"functii",label:"Pe Funcții"}].map(v => (
@@ -705,10 +721,6 @@ function CheltuieliTab() {
         ))}
       </div>
 
-      <div className="rounded-xl border p-4" style={{borderColor:"var(--border-color)", background:"var(--bg-surface)"}}>
-        <p className="text-xs font-medium mb-2" style={{color:"var(--c-text)"}}>💡 Ce vedeți aici?</p>
-        <p className="text-xs leading-relaxed" style={{color:"var(--c-muted)"}}>{EXPLAINERS.expenditure.context}</p>
-      </div>
     </div>
   );
 }
@@ -717,11 +729,12 @@ function DeficitTab() {
   return (
     <div className="space-y-5">
       <p className="text-xs" style={{color:"var(--c-muted)"}}>{EXPLAINERS.deficit.intro}</p>
+      <ExplainerBox explainerKey="deficit" />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard label="Deficit cash 2026" value="6,6%" unit={"din PIB · " + fmt(MACRO.deficitStat) + " mld lei"} accent="#A32D2D" />
-        <MetricCard label="Deficit ESA 2026" value="6,0%" unit="din PIB" accent="#D85A30" />
+        <MetricCard label={<>Deficit <GlossaryTerm id="cash">cash</GlossaryTerm> 2026</>} value="6,6%" unit={"din PIB · " + fmt(MACRO.deficitStat) + " mld lei"} accent="#A32D2D" sub={{text:"Dublu față de limita UE de 3%", color:"#A32D2D"}} />
+        <MetricCard label={<>Deficit <GlossaryTerm id="esa">ESA</GlossaryTerm> 2026</>} value="6,0%" unit="din PIB" accent="#D85A30" />
         <MetricCard label="Țintă 2029" value="3,2%" unit="ESA % PIB" accent="#639922" sub={{text: "Reducere de 2,8 pp", color:"#639922"}} />
-        <MetricCard label="Datorie publică" value="62,5%" unit="din PIB la final 2026" accent="#993556" />
+        <MetricCard label="Datorie publică" value="62,5%" unit="din PIB la final 2026" accent="#993556" sub={{text: "Peste pragul UE de 60%", color:"#993556"}} />
       </div>
 
       <p className="text-sm font-medium" style={{color:"var(--c-text)"}}>Traiectoria deficitului 2024 – 2029</p>
@@ -779,10 +792,6 @@ function DeficitTab() {
         </table>
       </div>
 
-      <div className="rounded-xl border p-4 mt-2" style={{borderColor:"var(--border-color)", background:"var(--bg-surface)"}}>
-        <p className="text-xs font-medium mb-2" style={{color:"var(--c-text)"}}>💡 Ce vedeți aici?</p>
-        <p className="text-xs leading-relaxed" style={{color:"var(--c-muted)"}}>{EXPLAINERS.deficit.context}</p>
-      </div>
     </div>
   );
 }
@@ -792,6 +801,7 @@ function LocaleTab() {
   return (
     <div className="space-y-5">
       <p className="text-xs" style={{color:"var(--c-muted)"}}>{EXPLAINERS.locale.intro}</p>
+      <ExplainerBox explainerKey="locale" />
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <MetricCard label="TVA pt bugete locale" value={"27.706,5"} unit="milioane lei" accent="#185FA5" />
         <MetricCard label="Resurse locale totale" value={"86,4"} unit="mld lei · +7,4 mld vs 2025" accent="#0F6E56" />
@@ -826,10 +836,6 @@ function LocaleTab() {
         </div>
       </div>
 
-      <div className="rounded-xl border p-4" style={{borderColor:"var(--border-color)", background:"var(--bg-surface)"}}>
-        <p className="text-xs font-medium mb-2" style={{color:"var(--c-text)"}}>💡 Ce vedeți aici?</p>
-        <p className="text-xs leading-relaxed" style={{color:"var(--c-muted)"}}>{EXPLAINERS.locale.context}</p>
-      </div>
     </div>
   );
 }
@@ -840,11 +846,12 @@ function EUTab() {
   return (
     <div className="space-y-5">
       <p className="text-xs" style={{color:"var(--c-muted)"}}>{EXPLAINERS.eu.intro}</p>
+      <ExplainerBox explainerKey="eu" />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard label="Total fonduri UE" value={"110+"} unit="mld lei în 2026" accent="#0F6E56" sub={{text:"+40% față de 2025 (78 mld)", color:"#0F6E56"}} />
+        <MetricCard label="Total fonduri UE" value={"110+"} unit="mld lei în 2026" accent="#0F6E56" sub={{text:"Cel mai mare an de absorbție din istoria României", color:"#0F6E56"}} />
         <MetricCard label="Investiții din UE" value="~67%" unit="din totalul investițiilor" accent="#185FA5" />
-        <MetricCard label="SAFE (apărare)" value="~6" unit="mld lei avansuri" accent="#D85A30" sub={{text: "Până la 16,2 mld € până 2030", color:"#D85A30"}} />
-        <MetricCard label="PNRR de atras" value="10+" unit="mld € rămase" accent="#534AB7" />
+        <MetricCard label={<><GlossaryTerm id="safe">SAFE</GlossaryTerm> (apărare)</>} value="~6" unit="mld lei avansuri" accent="#D85A30" sub={{text: "Până la 16,2 mld € până 2030", color:"#D85A30"}} />
+        <MetricCard label={<><GlossaryTerm id="pnrr">PNRR</GlossaryTerm> de atras</>} value="10+" unit="mld € rămase" accent="#534AB7" />
       </div>
 
       <p className="text-sm font-medium" style={{color:"var(--c-text)"}}>Fonduri europene pe surse (mld lei)</p>
@@ -885,10 +892,6 @@ function EUTab() {
         </p>
       </div>
 
-      <div className="rounded-xl border p-4" style={{borderColor:"var(--border-color)", background:"var(--bg-surface)"}}>
-        <p className="text-xs font-medium mb-2" style={{color:"var(--c-text)"}}>💡 Ce vedeți aici?</p>
-        <p className="text-xs leading-relaxed" style={{color:"var(--c-muted)"}}>{EXPLAINERS.eu.context}</p>
-      </div>
     </div>
   );
 }
@@ -897,6 +900,10 @@ function EUTab() {
 export default function BudgetExplorer() {
   const [activeTab, setActiveTab] = useState("overview");
   const [explorerInitId, setExplorerInitId] = useState(null);
+  const [showGlossary, setShowGlossary] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(() => {
+    try { return !localStorage.getItem("budget-welcome-dismissed"); } catch { return true; }
+  });
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem("budget-theme") || "light"; } catch { return "light"; }
   });
@@ -906,10 +913,17 @@ export default function BudgetExplorer() {
     try { localStorage.setItem("budget-theme", theme); } catch {}
   }, [theme]);
 
+  const dismissWelcome = () => {
+    setShowWelcome(false);
+    try { localStorage.setItem("budget-welcome-dismissed", "1"); } catch {}
+  };
+
   const navigateToExplorer = (ministryName) => {
     setExplorerInitId(ministryName);
     setActiveTab("explorer");
   };
+
+  const showCategoryLegend = ["ministere", "cheltuieli", "overview"].includes(activeTab);
 
   return (
     <div>
@@ -921,24 +935,48 @@ export default function BudgetExplorer() {
               Bugetul României 2026
             </h1>
             <span className="text-xs font-medium px-2 py-0.5 rounded-md" style={{background:"#0F6E5618", color:"#0F6E56"}}>
-              Proiect de lege
+              Adoptat
             </span>
-            <button
-              onClick={() => setTheme(t => t === "light" ? "dark" : "light")}
-              className="ml-auto text-sm px-2 py-1 rounded-lg border transition-all"
-              style={{ borderColor: "var(--border-color)", color: "var(--c-muted)", background: "var(--bg-surface)" }}
-              title={theme === "light" ? "Comută la modul întunecat" : "Comută la modul luminos"}
-            >
-              {theme === "light" ? "☾" : "☀"}
-            </button>
+            <div className="ml-auto flex items-center gap-2">
+              <a href="https://mfinante.gov.ro/" target="_blank" rel="noopener noreferrer"
+                className="text-xs px-2 py-1 rounded-lg border transition-all hover:opacity-80"
+                style={{ borderColor: "var(--border-color)", color: "var(--c-muted)", background: "var(--bg-surface)" }}
+              >Sursa oficiala &#x2197;</a>
+              <button
+                onClick={() => setShowGlossary(true)}
+                className="text-xs px-2 py-1 rounded-lg border transition-all"
+                style={{ borderColor: "var(--border-color)", color: "var(--c-muted)", background: "var(--bg-surface)" }}
+              >Glosar</button>
+              <button
+                onClick={() => setTheme(t => t === "light" ? "dark" : "light")}
+                className="text-sm px-2 py-1 rounded-lg border transition-all"
+                style={{ borderColor: "var(--border-color)", color: "var(--c-muted)", background: "var(--bg-surface)" }}
+                title={theme === "light" ? "Comută la modul întunecat" : "Comută la modul luminos"}
+              >
+                {theme === "light" ? "☾" : "☀"}
+              </button>
+            </div>
           </div>
           <p className="text-xs mt-1" style={{color:"var(--c-muted)"}}>
             Explorer interactiv · Date din proiectul Legii bugetului de stat 2026, Ministerul Finanțelor
           </p>
         </div>
 
+        {/* Welcome banner */}
+        {showWelcome && (
+          <div className="rounded-xl border p-4 mb-5 flex items-start gap-3" style={{borderColor:"#185FA5", background:"#185FA508"}}>
+            <div className="flex-1">
+              <p className="text-sm font-medium mb-1" style={{color:"var(--c-text)"}}>Bine ați venit!</p>
+              <p className="text-xs leading-relaxed" style={{color:"var(--c-muted)"}}>
+                Acesta este un dashboard interactiv al proiectului de buget al României pe 2026. Navigați prin tab-uri pentru a vedea veniturile, cheltuielile și alocările pe ministere. Apăsați pe grafice pentru detalii, sau folosiți <strong>Explorer</strong>-ul pentru a naviga datele complete ale tuturor instituțiilor.
+              </p>
+            </div>
+            <button onClick={dismissWelcome} className="text-xs px-2 py-1 rounded-lg border flex-shrink-0" style={{borderColor:"var(--border-color)", color:"var(--c-muted)"}}>Închide</button>
+          </div>
+        )}
+
         {/* Tabs */}
-        <div className="flex flex-wrap gap-1 pb-3 mb-5 border-b" style={{borderColor:"var(--border-color)"}}>
+        <div className="flex flex-wrap gap-1 pb-3 mb-2 border-b" style={{borderColor:"var(--border-color)"}}>
           {TABS.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
               className="text-xs font-medium px-3 py-1.5 rounded-full border transition-all"
@@ -952,27 +990,59 @@ export default function BudgetExplorer() {
           ))}
         </div>
 
+        {/* Category color legend */}
+        {showCategoryLegend && (
+          <div className="flex flex-wrap gap-3 mb-5">
+            {Object.entries(CATEGORIES).map(([id, cat]) => (
+              <span key={id} className="flex items-center gap-1.5 text-xs" style={{color:"var(--c-muted)"}}>
+                <span className="inline-block w-2 h-2 rounded-full" style={{background: cat.color}}/> {cat.label}
+              </span>
+            ))}
+          </div>
+        )}
+        {!showCategoryLegend && <div className="mb-3" />}
+
         {/* Content */}
         <div>
           {activeTab === "overview" && <OverviewTab onNavigateExplorer={navigateToExplorer} />}
+          {activeTab === "explorer" && <ExplorerTab key={explorerInitId} initialSearchName={explorerInitId} />}
           {activeTab === "ministere" && <MinistereTab onNavigateExplorer={navigateToExplorer} />}
-          {activeTab === "detaliu" && <DetaliiMinistereTab onNavigateExplorer={navigateToExplorer} />}
           {activeTab === "venituri" && <VenituriTab />}
-          {activeTab === "venituriDetaliu" && <VenituriDetaliuTab />}
           {activeTab === "cheltuieli" && <CheltuieliTab />}
           {activeTab === "deficit" && <DeficitTab />}
           {activeTab === "locale" && <LocaleTab />}
           {activeTab === "eu" && <EUTab />}
-          {activeTab === "explorer" && <ExplorerTab key={explorerInitId} initialSearchName={explorerInitId} />}
         </div>
 
         {/* Footer */}
         <div className="mt-8 pt-4 border-t text-center" style={{borderColor:"var(--border-color)"}}>
           <p className="text-xs" style={{color:"var(--c-muted)"}}>
-            Sursa: Proiect Legea bugetului de stat pe anul 2026 · Anexele 1-3 · Ministerul Finanțelor · mfinante.gov.ro
+            Sursa: Proiect Legea bugetului de stat pe anul 2026 · Anexele 1-3 · Ministerul Finanțelor ·{" "}
+            <a href="https://mfinante.gov.ro/domenii/bugetul-de-stat/proiectul-legii-bugetului-de-stat" target="_blank" rel="noopener noreferrer" style={{color:"var(--c-muted)", textDecoration:"underline"}}>mfinante.gov.ro</a>
           </p>
         </div>
       </div>
+
+      {/* Glossary modal */}
+      {showGlossary && (
+        <div style={{position:"fixed", inset:0, zIndex:100, display:"flex", alignItems:"center", justifyContent:"center"}}>
+          <div style={{position:"absolute", inset:0, background:"rgba(0,0,0,0.4)"}} onClick={() => setShowGlossary(false)} />
+          <div className="rounded-xl border p-6" style={{position:"relative", maxWidth:480, width:"90%", maxHeight:"80vh", overflow:"auto", background:"var(--bg-card)", borderColor:"var(--border-color)", boxShadow:"0 8px 32px rgba(0,0,0,0.2)"}}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold" style={{color:"var(--c-text)"}}>Glosar bugetar</h2>
+              <button onClick={() => setShowGlossary(false)} className="text-sm px-2 py-1 rounded-lg border" style={{borderColor:"var(--border-color)", color:"var(--c-muted)"}}>Închide</button>
+            </div>
+            <div className="space-y-3">
+              {Object.entries(GLOSSARY).map(([key, def]) => (
+                <div key={key} className="border-b pb-2" style={{borderColor:"var(--border-color)"}}>
+                  <p className="text-xs font-semibold uppercase tracking-wider" style={{color:"var(--c-text)"}}>{key.toUpperCase()}</p>
+                  <p className="text-xs mt-0.5" style={{color:"var(--c-muted)"}}>{def}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
