@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --c-text: #1a1a18;
+  --c-muted: #6e6e6a;
+  --bg-card: #ffffff;
+  --bg-surface: #f7f6f3;
+  --border-color: #e5e4e0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --c-text: #e8e6de;
+    --c-muted: #9c9a92;
+    --bg-card: #1e1e1c;
+    --bg-surface: #282826;
+    --border-color: #3a3a38;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-surface);
+  color: var(--c-text);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.tab-scroll::-webkit-scrollbar {
+  height: 0;
+}
+
+/* Recharts tooltip override for dark mode */
+.recharts-default-tooltip {
+  background: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+}
